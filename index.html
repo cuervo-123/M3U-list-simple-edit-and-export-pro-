@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mi TV Station</title>
+  <style>
+    :root{
+      color-scheme: dark;
+      --bg:#0c0f14; --panel:#121826; --panel-2:#0f1522; --line:#1f2a3d;
+      --fg:#e9edf5; --muted:#a9b4c7; --accent:#22c55e; --accent-2:#38bdf8; --danger:#ef4444; --warn:#f59e0b;
+      --radius:14px; --radius-sm:10px; --shadow:0 8px 28px rgba(0,0,0,.35);
+      --focus: 0 0 0 3px rgba(56,189,248,.25), 0 0 0 1px rgba(56,189,248,.55);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg); color:var(--fg);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      line-height:1.35;
+    }
+
+    header{
+      position:sticky; top:0; z-index:10;
+      background: linear-gradient(180deg, #0e1422 0%, #0e1422cc 80%, #0e142200 100%);
+      backdrop-filter:saturate(120%) blur(6px);
+      border-bottom:1px solid var(--line);
+    }
+    .wrap{max-width:1200px; margin:0 auto; padding:14px 16px;}
+    h1{margin:0; font-size:18px; letter-spacing:.3px; display:flex; gap:.6rem; align-items:center;}
+    .badge{font-size:12px; color:var(--muted); background:#0a111f; border:1px solid var(--line); padding:4px 8px; border-radius:999px}
+
+    main .wrap{display:grid; grid-template-columns: 1.25fr .95fr; gap:18px; padding-top:16px}
+    @media (max-width: 980px){
+      main .wrap{grid-template-columns: 1fr; gap:14px}
+    }
+
+    /* Card / panels */
+    .card{
+      background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+    .card-header{display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--line)}
+    .card-title{margin:0; font-size:14px; color:#dfe7f5; letter-spacing:.2px}
+    .card-body{padding:14px}
+
+    /* Video */
+    .tv-shell{padding:10px}
+    .tv-frame{
+      aspect-ratio:16/9;
+      width:100%;
+      border-radius:var(--radius);
+      border:1px solid var(--line);
+      overflow:hidden;
+      background:#0a0f18;
+      box-shadow: inset 0 0 0 1px #0b1222, 0 20px 40px #00000055;
+    }
+    video{width:100%; height:100%; display:block; background:#000}
+
+    /* Controls */
+    .stack{display:flex; flex-direction:column; gap:12px}
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    .grid-2{display:grid; grid-template-columns: 1fr auto; gap:10px}
+    .field{display:flex; flex-direction:column; gap:6px}
+    label{font-size:12px; color:var(--muted)}
+
+    input[type="text"], input[type="file"], select, input[type="search"]{
+      width:100%;
+      background:#0b1220;
+      color:var(--fg);
+      border:1px solid var(--line);
+      border-radius:var(--radius-sm);
+      padding:10px 12px;
+      outline:none;
+      transition:.2s border-color, .2s box-shadow;
+    }
+    input[type="search"]::placeholder{color:#7b8aa3}
+    input:focus, select:focus{box-shadow:var(--focus); border-color:#2b5cc7}
+
+    /* Multi select container */
+    .select-wrap{
+      background:#0b1220;
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:8px;
+    }
+    select[multiple]{
+      min-height:320px; width:100%;
+      background:transparent; border:0; color:var(--fg);
+      outline:none; border-radius:10px; padding:6px;
+    }
+    option{padding:6px 8px}
+
+    /* Buttons */
+    .btn{
+      appearance:none; border:1px solid transparent; background:#111a2b; color:#dfe7f5;
+      padding:10px 12px; border-radius:12px; cursor:pointer; font-weight:600; font-size:13px;
+      transition:.15s transform, .2s background, .2s border, .2s opacity;
+      display:inline-flex; align-items:center; gap:.5rem;
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .btn:active{transform:translateY(0)}
+    .btn[disabled]{opacity:.5; pointer-events:none}
+
+    .btn-primary{background:linear-gradient(180deg,#1a9b57,#16864c); border-color:#16864c}
+    .btn-primary:hover{background:linear-gradient(180deg,#1bb461,#149149)}
+    .btn-info{background:linear-gradient(180deg,#2187b9,#1a6e97); border-color:#1a6e97}
+    .btn-danger{background:linear-gradient(180deg,#ef4444,#d63636); border-color:#d63a3a}
+    .btn-ghost{background:#0b1220; border:1px solid var(--line)}
+    .btn-pill{border-radius:999px}
+
+    /* Editor */
+    #channelEditorWrapper .card-body{padding-top:0}
+    .editor-grid{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
+    .channel-edit{
+      display:grid; grid-template-columns: 1.1fr 1.6fr; gap:8px;
+      background:#0a0f18; border:1px solid #132038; padding:8px; border-radius:10px;
+    }
+    .muted{color:var(--muted); font-size:12px}
+
+    /* Utilities */
+    .spacer{height:8px}
+    .mt8{margin-top:8px} .mt12{margin-top:12px} .mt16{margin-top:16px} .mt20{margin-top:20px}
+    .right{margin-left:auto}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>📺 Mi TV Station <span class="badge">UI refresh</span></h1>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <!-- LEFT: Player -->
+      <section class="card">
+        <div class="card-header">
+          <p class="card-title">Reproductor</p>
+          <div class="row">
+            <button class="btn btn-ghost btn-pill" onclick="video.requestPictureInPicture?.()">Mini PiP</button>
+            <button class="btn btn-info btn-pill" onclick="toggleFullScreen()">Pantalla completa</button>
+          </div>
+        </div>
+        <div class="card-body tv-shell">
+          <div class="tv-frame">
+            <video id="videoPlayer" controls autoplay></video>
+          </div>
+          <div class="row mt12">
+            <button class="btn btn-primary" onclick="playRandomPreview()">▶️ Reproducir selección aleatoria</button>
+            <span class="muted">Selecciona 1 o más canales en la lista →</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: Controls -->
+      <aside class="stack">
+        <!-- Buscar + archivo -->
+        <section class="card">
+          <div class="card-header">
+            <p class="card-title">Fuentes y búsqueda</p>
+          </div>
+          <div class="card-body">
+            <div class="grid-2">
+              <div class="field">
+                <label for="searchBox">Buscar por nombre</label>
+                <input id="searchBox" type="search" placeholder="Ej: Caracol, Deportes, Noticias..." />
+              </div>
+              <div class="field">
+                <label for="playlistFile">Cargar lista (.json o .m3u)</label>
+                <input type="file" accept=".json,.m3u" id="playlistFile" />
+              </div>
+            </div>
+            <div class="spacer"></div>
+            <div class="field">
+              <label for="channelDropdown">Canales (multi-selección)</label>
+              <div class="select-wrap">
+                <select id="channelDropdown" multiple size="14"></select>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Playlists -->
+        <section class="card">
+          <div class="card-header">
+            <p class="card-title">Playlists</p>
+          </div>
+          <div class="card-body">
+            <div class="grid-2">
+              <input id="playlistName" type="text" placeholder="Nombre de la playlist" />
+              <button class="btn btn-primary" onclick="savePlaylist()">💾 Guardar</button>
+            </div>
+
+            <div class="row mt12">
+              <select id="savedPlaylists" style="flex:1" onchange="loadSavedPlaylist(this.value)">
+                <option value="">Selecciona una lista...</option>
+              </select>
+              <button class="btn btn-danger" onclick="deleteSelectedPlaylist()">🗑️ Eliminar</button>
+              <button class="btn btn-ghost" onclick="exportPlaylist()">⬇️ Exportar (.json)</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Editor -->
+        <section class="card" id="channelEditorWrapper">
+          <div class="card-header">
+            <p class="card-title">Editor de canales</p>
+            <button id="toggleEditorBtn" class="btn btn-ghost" onclick="toggleEditor()">🎛️ Mostrar / Ocultar</button>
+          </div>
+          <div id="channelEditor" class="card-body" style="display:none;">
+            <p class="muted mt8">Edita nombre y URL. Los cambios quedan en memoria hasta que exportes o guardes en una playlist.</p>
+            <div class="mt12 editor-grid" id="editorGrid"></div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    let playlist = [];
+    let currentStream = null;
+  
+    const video = document.getElementById('videoPlayer');
+    const dropdown = document.getElementById('channelDropdown');
+    const savedPlaylistsDropdown = document.getElementById('savedPlaylists');
+    const fileInput = document.getElementById('playlistFile');
+    const searchBox = document.getElementById('searchBox');
+    const editor = document.getElementById('channelEditor');
+    const editorGrid = document.getElementById('editorGrid');
+  
+    // --- Eventos ---
+    fileInput.addEventListener('change', handleFileLoad);
+    dropdown.addEventListener('change', onChangeChannel);
+    searchBox.addEventListener('input', applySearchFilter);
+  
+    function handleFileLoad(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+  
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target.result;
+        const fileName = file.name.toLowerCase();
+  
+        if (fileName.endsWith('.json')) {
+          try {
+            playlist = JSON.parse(content);
+            populateDropdown();
+            rebuildEditor();
+          } catch {
+            alert('Error al cargar el archivo JSON.');
+          }
+        } else if (fileName.endsWith('.m3u')) {
+          const lines = content.split('\n').map(l => l.trim()).filter(l => l !== '');
+          const m3uList = [];
+          let currentName = 'Canal Desconocido';
+  
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].startsWith('#EXTINF')) {
+              const nameMatch = lines[i].match(/,(.*)/);
+              if (nameMatch) currentName = nameMatch[1].trim();
+            } else if (lines[i].startsWith('http')) {
+              m3uList.push({ name: currentName, url: lines[i] });
+              currentName = 'Canal Desconocido';
+            }
+          }
+  
+          playlist = m3uList;
+          populateDropdown();
+          rebuildEditor();
+        } else {
+          alert('Formato de archivo no soportado. Usa .json o .m3u');
+        }
+      };
+      reader.readAsText(file);
+    }
+  
+    function populateDropdown(list = playlist) {
+      const q = (searchBox.value || '').toLowerCase().trim();
+      dropdown.innerHTML = '';
+      (list || []).forEach(channel => {
+        const option = document.createElement('option');
+        option.value = channel.url;
+        option.text = channel.name || 'Sin nombre';
+        if (!q || option.text.toLowerCase().includes(q)) {
+          dropdown.appendChild(option);
+        }
+      });
+  
+      if (dropdown.options.length > 0) {
+        dropdown.selectedIndex = 0;
+        currentStream = dropdown.value;
+        video.src = currentStream;
+        video.play().catch(()=>{});
+      }
+    }
+  
+    function onChangeChannel(){
+      currentStream = dropdown.value;
+      video.src = currentStream;
+      video.play().catch(()=>{});
+    }
+  
+    function playRandomPreview() {
+      const selectedOptions = Array.from(dropdown.selectedOptions);
+      if (selectedOptions.length === 0) {
+        alert('Selecciona uno o más canales.');
+        return;
+      }
+      const randomIndex = Math.floor(Math.random() * selectedOptions.length);
+      const selected = selectedOptions[randomIndex].value;
+      playInPlayer(selected, true);
+    }
+  
+    function savePlaylist() {
+      const name = document.getElementById('playlistName').value.trim();
+      if (!name) return alert('Escribe un nombre para la playlist');
+  
+      const selectedOptions = Array.from(dropdown.selectedOptions);
+      if (selectedOptions.length === 0) return alert('Selecciona al menos un canal');
+  
+      const saved = selectedOptions.map(opt => ({
+        name: opt.text,
+        url: opt.value
+      }));
+  
+      localStorage.setItem(`playlist_${name}`, JSON.stringify(saved));
+      loadAllPlaylists();
+      alert(`Playlist "${name}" guardada.`);
+    }
+  
+    function loadSavedPlaylist(name) {
+      if (!name) return;
+      const saved = localStorage.getItem(`playlist_${name}`);
+      if (saved) {
+        playlist = JSON.parse(saved);
+        populateDropdown();
+        rebuildEditor();
+      }
+    }
+  
+    function loadAllPlaylists() {
+      savedPlaylistsDropdown.innerHTML = '<option value="">Selecciona una lista...</option>';
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('playlist_')) {
+          const name = key.replace('playlist_', '');
+          const option = document.createElement('option');
+          option.value = name;
+          option.text = name;
+          savedPlaylistsDropdown.appendChild(option);
+        }
+      });
+    }
+  
+    function deleteSelectedPlaylist() {
+      const name = savedPlaylistsDropdown.value;
+      if (name && confirm(`¿Eliminar la playlist "${name}"?`)) {
+        localStorage.removeItem(`playlist_${name}`);
+        loadAllPlaylists();
+      }
+    }
+  
+    function exportPlaylist() {
+      const blob = new Blob([JSON.stringify(playlist, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'mi_playlist.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  
+    function toggleEditor() {
+      if (editor.style.display === 'none') {
+        editor.style.display = 'block';
+        rebuildEditor();
+      } else {
+        editor.style.display = 'none';
+      }
+    }
+  
+    function rebuildEditor(){
+      editorGrid.innerHTML = '';
+      (playlist || []).forEach((channel, index) => {
+        const row = document.createElement('div');
+        row.className = 'channel-edit';
+        row.innerHTML = `
+          <input type="text" value="${escapeHtml(channel.name||'')}" placeholder="Nombre"
+                 oninput="playlist[${index}].name = this.value">
+          <input type="text" value="${escapeHtml(channel.url||'')}" placeholder="URL"
+                 oninput="playlist[${index}].url = this.value">
+          <button class="btn btn-primary" onclick="playInPlayer('${channel.url.replace(/'/g,"&#39;")}')">▶️</button>
+        `;
+        editorGrid.appendChild(row);
+      });
+    }
+  
+    function applySearchFilter(){
+      populateDropdown(playlist);
+    }
+  
+    // --- Nuevas funciones ---
+    function playInPlayer(url, autoPiP=false){
+      currentStream = url;
+      video.src = url;
+      video.play().then(()=>{
+        if(autoPiP) enterPiP();
+      }).catch(()=>{});
+    }
+  
+    function enterPiP(){
+      if (!document.pictureInPictureElement) {
+        video.requestPictureInPicture?.().catch(err=>{
+          alert("PiP no soportado: " + err);
+        });
+      }
+    }
+  
+    function toggleFullScreen(){
+      const el = video;
+      if (!document.fullscreenElement) {
+        el.requestFullscreen?.().catch(()=>{
+          document.documentElement.requestFullscreen?.();
+        });
+      } else {
+        document.exitFullscreen?.();
+      }
+    }
+  
+    function escapeHtml(str){
+      return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+    }
+  
+    // Init
+    populateDropdown();
+    loadAllPlaylists();
+  </script>
+  
+</body>
+</html>
